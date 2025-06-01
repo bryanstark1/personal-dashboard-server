@@ -1,6 +1,7 @@
 // server.js
 const express = require('express');
 const cors = require('cors');
+const fetch = require('node-fetch');
 require('dotenv').config();
 
 const app = express();
@@ -12,25 +13,29 @@ app.use(express.json());
 
 // Routes
 app.get('/', (req, res) => {
-  res.send('Express server is running on Raspberry Pi');
+  res.send(`Express server is running on port ${PORT}`);
 });
 
 // Example Weather Proxy
 app.get('/api/weather', async (req, res) => {
-  const lat = req.query.lat || '40.7128';
-  const lon = req.query.lon || '-74.0060';
-  const apiKey = process.env.WEATHER_API_KEY;
+  const location = req.query.location || 'New York';
+  console.log(`Fetching weather for: ${location}`);
 
   try {
-    const fetch = (await import('node-fetch')).default;
-    const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`);
+    const url = `https://wttr.in/${encodeURIComponent(location)}?format=j1`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Failed to fetch weather' });
+    }
+
     const data = await response.json();
     res.json(data);
   } catch (error) {
-    console.error('Error fetching weather:', error);
+    console.error('Error fetching weather:', error.message);
     res.status(500).json({ error: 'Failed to fetch weather' });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
